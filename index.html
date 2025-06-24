@@ -195,7 +195,7 @@
         };
 
         // Initialize app
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             await fetchProductsFromSheet();
             setupEventListeners();
             updateAlertSections();
@@ -223,6 +223,7 @@
             const existingProduct = products.find(p => p.name.toLowerCase() === name.toLowerCase() && p.category === category);
             if (existingProduct) {
                 existingProduct.quantity += quantity;
+                saveProduct(existingProduct); // Guardar el producto actualizado en Google Sheets
             } else {
                 const newProduct = {
                     id: Date.now(),
@@ -231,13 +232,13 @@
                     category: category
                 };
                 products.push(newProduct);
+                saveProduct(newProduct); // Guardar el nuevo producto en Google Sheets
             }
 
-            saveProducts();
             loadProducts();
             updateAlertSections();
 
-            // Clear form
+            // Limpiar el formulario
             document.getElementById('addProductForm').reset();
         }
 
@@ -316,7 +317,7 @@
             const product = products.find(p => p.id === productId);
             if (product) {
                 product.quantity = Math.max(0, product.quantity + change);
-                saveProducts();
+                saveProduct(product);
                 loadProducts();
                 updateAlertSections();
             }
@@ -326,7 +327,7 @@
             const product = products.find(p => p.id === productId);
             if (product && newName.trim()) {
                 product.name = newName.trim();
-                saveProducts();
+                saveProduct(product);
             } else if (product) {
                 // Restore original name if empty
                 loadProducts();
@@ -336,7 +337,7 @@
         function deleteProduct(productId) {
             if (confirm('¿Estás seguro de que quieres eliminar este producto?')) {
                 products = products.filter(p => p.id !== productId);
-                saveProducts();
+                saveProduct(product);
                 loadProducts();
                 updateAlertSections();
             }
@@ -421,20 +422,27 @@
             }
         }
 
-        function saveProducts() {
-            products.forEach(product => {
-                fetch("https://script.google.com/macros/s/AKfycbw4fbA25d6Nk523DjTWhqEAreXh_KxkRlsWZJkLzW9-Vw31XKB-_gPt5-__GDLqDSVt/exec", {
-                    method: "POST",
-                    body: JSON.stringify(product),
-                    headers: {
-                        "Content-Type": "application/json"
-                    }
-                });
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw4fbA25d6Nk523DjTWhqEAreXh_KxkRlsWZJkLzW9-Vw31XKB-_gPt5-__GDLqDSVt/exec";
+
+        function saveProduct(product) {
+            fetch(SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify(product),
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            })
+            .then(response => response.text())
+            .then(text => {
+                console.log("Respuesta del servidor:", text);
+            })
+            .catch(error => {
+                console.error("Error al guardar en Google Sheets:", error);
             });
         }
 
         async function fetchProductsFromSheet() {
-            const res = await fetch("https://script.google.com/macros/s/AKf.../exec");
+            const res = await fetch(SCRIPT_URL);
             const data = await res.json();
             products = data.map(p => ({
                 id: Number(p.id),
@@ -445,6 +453,7 @@
             loadProducts();
             updateAlertSections();
         }
+
 
 
     </script>
