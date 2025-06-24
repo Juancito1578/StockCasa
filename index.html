@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Stock Doméstico</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <style>
+        .alert-section {
+            transition: all 0.3s ease;
+        }
+        .alert-section.collapsed .alert-content {
+            max-height: 0;
+            overflow: hidden;
+        }
+        .alert-section.expanded .alert-content {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .product-item {
+            transition: all 0.2s ease;
+        }
+        .product-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .editable-name {
+            background: transparent;
+            border: none;
+            outline: none;
+            width: 100%;
+        }
+        .editable-name:focus {
+            background: white;
+            border: 1px solid #3b82f6;
+            border-radius: 4px;
+            padding: 2px 4px;
+        }
+        .quantity-btn {
+            transition: all 0.1s ease;
+        }
+        .quantity-btn:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-blue-600 text-white p-4 shadow-lg">
+        <h1 class="text-2xl font-bold text-center">
+            <i class="fas fa-boxes mr-2"></i>
+            Gestor de Stock Doméstico
+        </h1>
+    </header>
+
+    <div class="container mx-auto p-4 max-w-lg">
+        <!-- Alert Section: Sin Stock -->
+        <div id="outOfStockSection" class="alert-section mb-4 bg-red-100 border-l-4 border-red-500 rounded-lg shadow-md">
+            <div class="flex items-center justify-between p-4 cursor-pointer bg-red-50" onclick="toggleSection('outOfStock')">
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-triangle text-red-600 mr-2"></i>
+                    <h3 class="font-bold text-red-800">🔴 Comprar/Sin Stock</h3>
+                    <span id="outOfStockCount" class="ml-2 bg-red-600 text-white px-2 py-1 rounded-full text-xs">0</span>
+                </div>
+                <i id="outOfStockIcon" class="fas fa-chevron-down text-red-600"></i>
+            </div>
+            <div id="outOfStockContent" class="alert-content px-4 pb-4">
+                <div id="outOfStockList" class="space-y-2">
+                    <!-- Out of stock items will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Alert Section: Stock Bajo -->
+        <div id="lowStockSection" class="alert-section mb-4 bg-orange-100 border-l-4 border-orange-500 rounded-lg shadow-md">
+            <div class="flex items-center justify-between p-4 cursor-pointer bg-orange-50" onclick="toggleSection('lowStock')">
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-circle text-orange-600 mr-2"></i>
+                    <h3 class="font-bold text-orange-800">🟠 Stock Bajo</h3>
+                    <span id="lowStockCount" class="ml-2 bg-orange-600 text-white px-2 py-1 rounded-full text-xs">0</span>
+                </div>
+                <i id="lowStockIcon" class="fas fa-chevron-down text-orange-600"></i>
+            </div>
+            <div id="lowStockContent" class="alert-content px-4 pb-4">
+                <div id="lowStockList" class="space-y-2">
+                    <!-- Low stock items will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Product Form -->
+        <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+            <h3 class="font-bold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-plus-circle mr-2 text-green-600"></i>
+                Agregar Producto
+            </h3>
+            <form id="addProductForm" class="space-y-4">
+                <input 
+                    type="text" 
+                    id="productName" 
+                    placeholder="Nombre del producto" 
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                >
+                <input 
+                    type="number" 
+                    id="productQuantity" 
+                    placeholder="Cantidad" 
+                    min="0" 
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                >
+                <select 
+                    id="productCategory" 
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                >
+                    <option value="">Seleccionar categoría</option>
+                    <option value="cat1">🍞 Alimentos básicos</option>
+                    <option value="cat2">🧽 Productos de limpieza</option>
+                    <option value="cat3">🧴 Productos de higiene personal</option>
+                    <option value="cat4">🥤 Bebidas</option>
+                    <option value="cat5">📦 Otros</option>
+                </select>
+                <button 
+                    type="submit" 
+                    class="w-full bg-green-600 text-white p-3 rounded-lg font-bold hover:bg-green-700 transition-colors flex items-center justify-center"
+                >
+                    <i class="fas fa-plus mr-2"></i>
+                    Agregar Producto
+                </button>
+            </form>
+        </div>
+
+        <!-- Products by Category -->
+        <div id="productsContainer">
+            <div id="cat1Products" class="category-section mb-6">
+                <h3 class="font-bold text-gray-800 mb-3 flex items-center">
+                    <i class="fas fa-bread-slice mr-2 text-yellow-600"></i>
+                    🍞 Alimentos básicos
+                </h3>
+                <div class="products-list space-y-2"></div>
+            </div>
+
+            <div id="cat2Products" class="category-section mb-6">
+                <h3 class="font-bold text-gray-800 mb-3 flex items-center">
+                    <i class="fas fa-spray-can mr-2 text-blue-600"></i>
+                    🧽 Productos de limpieza
+                </h3>
+                <div class="products-list space-y-2"></div>
+            </div>
+
+            <div id="cat3Products" class="category-section mb-6">
+                <h3 class="font-bold text-gray-800 mb-3 flex items-center">
+                    <i class="fas fa-pump-soap mr-2 text-purple-600"></i>
+                    🧴 Productos de higiene personal
+                </h3>
+                <div class="products-list space-y-2"></div>
+            </div>
+
+            <div id="cat4Products" class="category-section mb-6">
+                <h3 class="font-bold text-gray-800 mb-3 flex items-center">
+                    <i class="fas fa-glass-water mr-2 text-cyan-600"></i>
+                    🥤 Bebidas
+                </h3>
+                <div class="products-list space-y-2"></div>
+            </div>
+
+            <div id="cat5Products" class="category-section mb-6">
+                <h3 class="font-bold text-gray-800 mb-3 flex items-center">
+                    <i class="fas fa-box mr-2 text-gray-600"></i>
+                    📦 Otros
+                </h3>
+                <div class="products-list space-y-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let products = JSON.parse(localStorage.getItem('stockProducts')) || [];
+        let alertSections = {
+            outOfStock: false,
+            lowStock: false
+        };
+
+        // Category mapping
+        const categoryNames = {
+            cat1: '🍞 Alimentos básicos',
+            cat2: '🧽 Productos de limpieza',
+            cat3: '🧴 Productos de higiene personal',
+            cat4: '🥤 Bebidas',
+            cat5: '📦 Otros'
+        };
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            await fetchProductsFromSheet();
+            setupEventListeners();
+            updateAlertSections();
+        });
+
+        function setupEventListeners() {
+            // Add product form
+            document.getElementById('addProductForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                addProduct();
+            });
+        }
+
+        function addProduct() {
+            const name = document.getElementById('productName').value.trim().toLowerCase();
+            const quantity = parseInt(document.getElementById('productQuantity').value);
+            const category = document.getElementById('productCategory').value;
+
+            if (!name || quantity < 0 || !category) {
+                alert('Por favor, completa todos los campos correctamente.');
+                return;
+            }
+
+            // Check if product already exists
+            const existingProduct = products.find(p => p.name.toLowerCase() === name.toLowerCase() && p.category === category);
+            if (existingProduct) {
+                existingProduct.quantity += quantity;
+            } else {
+                const newProduct = {
+                    id: Date.now(),
+                    name: name,
+                    quantity: quantity,
+                    category: category
+                };
+                products.push(newProduct);
+            }
+
+            saveProducts();
+            loadProducts();
+            updateAlertSections();
+
+            // Clear form
+            document.getElementById('addProductForm').reset();
+        }
+
+        function loadProducts() {
+            // Clear all category containers
+            document.querySelectorAll('.products-list').forEach(container => {
+                container.innerHTML = '';
+            });
+
+            // Group products by category
+            const productsByCategory = {};
+            products.forEach(product => {
+                if (!productsByCategory[product.category]) {
+                    productsByCategory[product.category] = [];
+                }
+                productsByCategory[product.category].push(product);
+            });
+
+            // Render products for each category
+            Object.keys(productsByCategory).forEach(category => {
+                const container = document.querySelector(`#${category}Products .products-list`);
+                productsByCategory[category].forEach(product => {
+                    const productElement = createProductElement(product);
+                    container.appendChild(productElement);
+                });
+            });
+        }
+
+        function createProductElement(product) {
+            const div = document.createElement('div');
+            div.className = 'product-item bg-white p-4 rounded-lg shadow border';
+            
+            const quantityColor = product.quantity === 0 ? 'text-red-600' : 
+                                 product.quantity <= 2 ? 'text-orange-600' : 'text-green-600';
+
+            div.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                        <input 
+                            type="text" 
+                            value="${product.name}" 
+                            class="editable-name font-semibold text-gray-800"
+                            onblur="updateProductName(${product.id}, this.value)"
+                            onkeypress="if(event.key==='Enter') this.blur()"
+                        >
+                        <p class="text-sm text-gray-600">${categoryNames[product.category]}</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button 
+                            onclick="updateQuantity(${product.id}, -1)"
+                            class="quantity-btn bg-red-500 text-white w-8 h-8 rounded-full hover:bg-red-600 flex items-center justify-center"
+                        >
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <span class="font-bold ${quantityColor} min-w-[2rem] text-center">${product.quantity}</span>
+                        <button 
+                            onclick="updateQuantity(${product.id}, 1)"
+                            class="quantity-btn bg-green-500 text-white w-8 h-8 rounded-full hover:bg-green-600 flex items-center justify-center"
+                        >
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        <button 
+                            onclick="deleteProduct(${product.id})"
+                            class="bg-gray-500 text-white w-8 h-8 rounded-full hover:bg-gray-600 flex items-center justify-center ml-2"
+                        >
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            return div;
+        }
+
+        function updateQuantity(productId, change) {
+            const product = products.find(p => p.id === productId);
+            if (product) {
+                product.quantity = Math.max(0, product.quantity + change);
+                saveProducts();
+                loadProducts();
+                updateAlertSections();
+            }
+        }
+
+        function updateProductName(productId, newName) {
+            const product = products.find(p => p.id === productId);
+            if (product && newName.trim()) {
+                product.name = newName.trim();
+                saveProducts();
+            } else if (product) {
+                // Restore original name if empty
+                loadProducts();
+            }
+        }
+
+        function deleteProduct(productId) {
+            if (confirm('¿Estás seguro de que quieres eliminar este producto?')) {
+                products = products.filter(p => p.id !== productId);
+                saveProducts();
+                loadProducts();
+                updateAlertSections();
+            }
+        }
+
+        function updateAlertSections() {
+            const outOfStockProducts = products.filter(p => p.quantity === 0);
+            const lowStockProducts = products.filter(p => p.quantity >= 1 && p.quantity <= 1);
+
+            // Update counters
+            document.getElementById('outOfStockCount').textContent = outOfStockProducts.length;
+            document.getElementById('lowStockCount').textContent = lowStockProducts.length;
+
+            // Update out of stock list
+            const outOfStockList = document.getElementById('outOfStockList');
+            outOfStockList.innerHTML = '';
+            if (outOfStockProducts.length === 0) {
+                outOfStockList.innerHTML = '<p class="text-gray-600 italic">¡Genial! No hay productos sin stock.</p>';
+            } else {
+                outOfStockProducts.forEach(product => {
+                    const item = document.createElement('div');
+                    item.className = 'bg-white p-2 rounded border-l-4 border-red-500';
+                    item.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <span class="font-medium">${product.name}</span>
+                            <span class="text-sm text-gray-600">${categoryNames[product.category]}</span>
+                        </div>
+                    `;
+                    outOfStockList.appendChild(item);
+                });
+            }
+
+            // Update low stock list
+            const lowStockList = document.getElementById('lowStockList');
+            lowStockList.innerHTML = '';
+            if (lowStockProducts.length === 0) {
+                lowStockList.innerHTML = '<p class="text-gray-600 italic">No hay productos con stock bajo.</p>';
+            } else {
+                lowStockProducts.forEach(product => {
+                    const item = document.createElement('div');
+                    item.className = 'bg-white p-2 rounded border-l-4 border-orange-500';
+                    item.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <span class="font-medium">${product.name}</span>
+                            <div class="flex items-center space-x-2">
+                                <span class="font-bold text-orange-600">${product.quantity}</span>
+                                <span class="text-sm text-gray-600">${categoryNames[product.category]}</span>
+                            </div>
+                        </div>
+                    `;
+                    lowStockList.appendChild(item);
+                });
+            }
+
+            // Show/hide sections based on content
+            const outOfStockSection = document.getElementById('outOfStockSection');
+            const lowStockSection = document.getElementById('lowStockSection');
+            
+            outOfStockSection.style.display = outOfStockProducts.length > 0 ? 'block' : 'none';
+            lowStockSection.style.display = lowStockProducts.length > 0 ? 'block' : 'none';
+        }
+
+        function toggleSection(sectionType) {
+            const content = document.getElementById(sectionType + 'Content');
+            const icon = document.getElementById(sectionType + 'Icon');
+            const section = document.getElementById(sectionType + 'Section');
+
+            if (alertSections[sectionType]) {
+                // Collapse
+                section.classList.remove('expanded');
+                section.classList.add('collapsed');
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+                alertSections[sectionType] = false;
+            } else {
+                // Expand
+                section.classList.remove('collapsed');
+                section.classList.add('expanded');
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+                alertSections[sectionType] = true;
+            }
+        }
+
+        function saveProducts() {
+            products.forEach(product => {
+                fetch("https://script.google.com/macros/s/AKfycbw4fbA25d6Nk523DjTWhqEAreXh_KxkRlsWZJkLzW9-Vw31XKB-_gPt5-__GDLqDSVt/exec", {
+                    method: "POST",
+                    body: JSON.stringify(product),
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                });
+            });
+        }
+
+        async function fetchProductsFromSheet() {
+            const res = await fetch("https://script.google.com/macros/s/AKf.../exec");
+            const data = await res.json();
+            products = data.map(p => ({
+                id: Number(p.id),
+                name: p.name,
+                quantity: Number(p.quantity),
+                category: p.category
+            }));
+            loadProducts();
+            updateAlertSections();
+        }
+
+
+    </script>
+</body>
+</html>
