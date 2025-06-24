@@ -428,12 +428,16 @@
 
 
         function saveProduct(product) {
+            const formBody = Object.keys(product).map(key =>
+                encodeURIComponent(key) + '=' + encodeURIComponent(product[key])
+            ).join('&');
+
             fetch(SCRIPT_URL, {
                 method: "POST",
-                body: JSON.stringify(product),
                 headers: {
-                    "Content-Type": "application/json"
-                }
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: formBody
             })
             .then(response => response.text())
             .then(text => {
@@ -443,6 +447,7 @@
                 console.error("Error al guardar en Google Sheets:", error);
             });
         }
+
 
         async function fetchProductsFromSheet() {
             const res = await fetch(SCRIPT_URL);
