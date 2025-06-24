@@ -422,7 +422,10 @@
             }
         }
 
-        const SCRIPT_URL = "https://corsproxy.io/?" + encodeURIComponent("https://script.google.com/macros/s/AKfycbw4fbA25d6Nk523DjTWhqEAreXh_KxkRlsWZJkLzW9-Vw31XKB-_gPt5-__GDLqDSVt/exec");
+        const SCRIPT_URL_BASE = "https://script.google.com/macros/s/AKfycbw4fbA25d6Nk523DjTWhqEAreXh_KxkRlsWZJkLzW9-Vw31XKB-_gPt5-__GDLqDSVt/exec";
+        const CORS_PROXY = "https://api.allorigins.win/raw?url=";
+        const SCRIPT_URL = CORS_PROXY + encodeURIComponent(SCRIPT_URL_BASE);
+
 
         function saveProduct(product) {
             fetch(SCRIPT_URL, {
